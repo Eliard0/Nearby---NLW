@@ -17,13 +17,22 @@ class HomeViewController: UIViewController {
         super.viewDidLoad()
         self.view = homeView
         homeView.mapView.delegate = self
-        homeView.configureTableViewDelagate(self, dataSource: self)
+        homeView.configureTableViewDelegate(self, dataSource: self)
         defineInitialLocation()
         
         homeViewModel.fetchInitialData { [weak self] categories in
             guard let self = self else { return }
-            self.homeView.updateFilterButton(with: categories) { selectCategory in
-                
+            self.homeView.updateFilterButtons(with: categories) { selectCategory in
+                self.filterPlaces(by: selectCategory)
+            }
+        }
+        
+        self.addAnnotarionsToMap()
+        homeViewModel.didUpdatePlaces = { [weak self] in
+            DispatchQueue.main.async {
+                self?.places = self?.homeViewModel.places ?? []
+                self?.homeView.reloadTableViewData()
+                self?.addAnnotarionsToMap()
             }
         }
     }
@@ -31,6 +40,21 @@ class HomeViewController: UIViewController {
     private func defineInitialLocation(){
         let initialLocation = CLLocationCoordinate2D(latitude: -23.561187293883442, longitude: -46.656451388116494)
         homeView.mapView.setRegion(MKCoordinateRegion(center: initialLocation, span: MKCoordinateSpan(latitudeDelta: 0.1, longitudeDelta: 0.1)), animated: false)
+    }
+    
+    private func addAnnotarionsToMap(){
+        homeView.mapView.removeAnnotations(homeView.mapView.annotations)
+        let annotations = places.map { PlaceAnnotation(place: $0) }
+        
+        homeView.mapView.addAnnotations(annotations)
+        if let firstAnnotation = annotations.first {
+            homeView.mapView.setRegion(MKCoordinateRegion(center: firstAnnotation.coordinate, span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)), animated: true)
+        }
+    }
+    
+    private func filterPlaces(by category: Category){
+        let currentCenter = homeView.mapView.region.center
+        homeViewModel.fetchPlaces(for: category.id, userLocation: currentCenter)
     }
 }
 
@@ -40,11 +64,13 @@ extension HomeViewController: UITableViewDelegate, UITableViewDataSource {
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        guard let cell = tableView.dequeueReusableCell(withIdentifier: PlaceTableViewCell.identifier, for: indexPath) as? PlaceTableViewCell else {
+        guard let cell = tableView.dequeueReusableCell(withIdentifier: PlaceTableViewCell.identifier, for: indexPath)
+                as? PlaceTableViewCell else {
             return UITableViewCell()
         }
         
         cell.configuration(with: places[indexPath.row])
+        cell.backgroundColor = .white
         return cell
     }
     
@@ -54,8 +80,11 @@ extension HomeViewController: UITableViewDelegate, UITableViewDataSource {
     
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
+        
+        let details = DetailsViewController()
+        details.place = places[indexPath.row]
+        navigationController?.pushViewController(details, animated: true)
     }
-    
 }
 
 extension HomeViewController: MKMapViewDelegate {

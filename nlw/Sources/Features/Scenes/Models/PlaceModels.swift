@@ -13,9 +13,9 @@ struct Place: Decodable {
     let description: String
     let coupons: Int
     let latitude: Double
-    let longetide: Double
+    let longitude: Double
     let address: String
     let phone: String
     let cover: String
-    let categoryId: String    
+    let categoryId: String
 }

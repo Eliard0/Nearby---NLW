@@ -15,6 +15,6 @@ class PlaceAnnotation: NSObject, MKAnnotation {
     init(place: Place) {
         self.title = place.name
         self.subtitle = place.description
-        self.coordinate = CLLocationCoordinate2D(latitude: place.latitude, longitude: place.longetide)
+        self.coordinate = CLLocationCoordinate2D(latitude: place.latitude, longitude: place.longitude)
     }
 }
